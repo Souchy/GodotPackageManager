@@ -1,0 +1,20 @@
+{
+  "profiles": {
+    "GodotPackageManager": {
+      "commandName": "Project"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker"
+    },
+    "install pkg": {
+      "commandName": "Project",
+      "commandLineArgs": "install SimplestGodRay3D",
+      "nativeDebugging": true
+    },
+    "install all": {
+      "commandName": "Project",
+      "commandLineArgs": "install",
+      "nativeDebugging": true
+    }
+  }
+}
