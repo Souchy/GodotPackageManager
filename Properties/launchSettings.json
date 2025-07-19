@@ -15,6 +15,11 @@
       "commandName": "Project",
       "commandLineArgs": "install",
       "nativeDebugging": true
+    },
+    "uninstall pkg": {
+      "commandName": "Project",
+      "commandLineArgs": "uninstall SimplestGodRay3D",
+      "nativeDebugging": true
     }
   }
 }

@@ -7,6 +7,7 @@ public class Package
     public string AssetId { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
+    public string InstallFolder { get; set; } = string.Empty;
     /// <summary>
     /// Godot asset library or NPM.
     /// </summary>
@@ -14,7 +15,7 @@ public class Package
 
 }
 
-internal class PackagesFile : Config
+public class PackagesFile : Config
 {
     public List<Package> Packages { get; set; } = [];
 
@@ -38,11 +39,7 @@ internal class PackagesFile : Config
     public bool TryFind(out Package? package, string name)
     {
         package = Packages.Find(p => p.Name == name);
-        if (package != null)
-        {
-            return true;
-        }
-        return false;
+        return package != null;
     }
 
 }

@@ -1,4 +1,5 @@
 ﻿using CommandLine;
+using Souchy.Net;
 using Souchy.Net.io;
 using System.IO.Compression;
 using System.Xml.Linq;
@@ -10,12 +11,14 @@ internal class Program
     private static PackagesFile PackagesFile { get; set; }
     private const string Gpm = ".gpm";
     private const string GpmTemp = ".gpm/temp/";
-    private const string GpmPlugins = ".gpm/packages.json";
+    private const string GpmPlugins = "packages.json";
     private const string AddonsFolder = "addons";
 
     static async Task Main(string[] args)
     {
         PackagesFile = Config.Load<PackagesFile>(GpmPlugins);
+        PackagesFile.BaseDirectory = Gpm;
+
         if (PackagesFile == null)
         {
             Console.WriteLine("Failed to load packages.json. Please ensure it exists and is valid.");
@@ -34,6 +37,8 @@ internal class Program
             Console.WriteLine("Error parsing arguments.");
             Environment.Exit(1);
         });
+
+        PackagesFile.Save();
     }
 
     private static async Task RunInstall(InstallOptions opts)
@@ -58,7 +63,7 @@ internal class Program
         {
             await AddPackageByName(pkg.Name);
         }
-        var asset = await PackageFetcher.Instance.FetchPackageDetailsAsync(pkg.AssetId);
+        var asset = PackageFetcher.Instance.FetchPackageDetailsAsync(pkg.AssetId).Result;
         if (asset == null)
         {
             Console.WriteLine($"Package with ID {pkg.AssetId} not found.");
@@ -83,8 +88,12 @@ internal class Program
         // Get the plugin's addons directory or the full directory if not found
         string relativeAddons = Path.GetRelativePath("./", AddonsFolder);
         string extractedAddons = Directory.GetDirectories(extractPath, relativeAddons, SearchOption.AllDirectories).FirstOrDefault() ?? extractPath;
+        string installFolder = Directory.GetDirectories(extractedAddons).First();
+
+        pkg.InstallFolder = installFolder;
+
         // Move the plugin to addons/
-        DirectoryUtil.MoveDirectory(extractedAddons, AddonsFolder);
+        DirectoryUtil.MoveDirectory(installFolder, AddonsFolder);
         // Remove the zip and extracted directory
         Directory.Delete(extractPath, true);
         File.Delete(zipPath);
@@ -92,7 +101,8 @@ internal class Program
 
     private static async Task AddPackageByName(string name)
     {
-        var pkg = (await PackageFetcher.Instance.FetchPackagesAsync(name)).FirstOrDefault();
+        var pkg = (PackageFetcher.Instance.FetchPackagesAsync(name).Result).FirstOrDefault();
+        string snake = Naming.ToSnakeCase(pkg.Name);
         if (pkg == null)
         {
             Console.WriteLine("No packages found.");
@@ -103,22 +113,50 @@ internal class Program
         //    return;
 
         await InstallPackage(pkg); // FIXME: think this goes out of here? 
-        PackagesFile.Save();
     }
 
     private static async Task RunUninstall(UninstallOptions opts)
     {
-        throw new NotImplementedException();
+        if(!PackagesFile.TryFind(out var pkg, opts.PackageName))
+            return;
+        //string snake = Naming.ToSnakeCase(pkg.Name);
+
+        Directory.Delete(Path.Combine(AddonsFolder, pkg.InstallFolder), true);
+        PackagesFile.Packages.Remove(pkg);
     }
 
     private static async Task RunUpdate(UpdateOptions opts)
     {
-        throw new NotImplementedException();
+        if (!string.IsNullOrEmpty(opts.PackageName))
+        {
+            if (!PackagesFile.TryFind(out var pkg, opts.PackageName))
+            {
+                Console.WriteLine($"Package {opts.PackageName} not found.");
+                return;
+            }
+            await InstallPackage(pkg);
+        }
+        else
+        {
+            foreach (var pkg in PackagesFile.Packages)
+            {
+                await InstallPackage(pkg);
+            }
+        }
     }
 
     private static async Task RunList(ListOptions opts)
     {
-        throw new NotImplementedException();
+        if (PackagesFile.Packages.Count == 0)
+        {
+            Console.WriteLine("No packages installed.");
+            return;
+        }
+        Console.WriteLine("Installed Packages:");
+        foreach (var pkg in PackagesFile.Packages)
+        {
+            Console.WriteLine($"- {pkg.Name} (Version: {pkg.Version})");
+        }
     }
 
 }
