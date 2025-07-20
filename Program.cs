@@ -30,7 +30,7 @@ internal class Program
         await command.WithParsedAsync<InstallOptions>(RunInstall);
         await command.WithParsedAsync<UninstallOptions>(RunUninstall);
         await command.WithParsedAsync<UpdateOptions>(RunUpdate);
-        await command.WithParsedAsync<ListOptions>(RunList);
+        command.WithParsed<ListOptions>(RunList);
         command.WithNotParsed(errs =>
         {
             // Handle errors here if needed
@@ -102,7 +102,7 @@ internal class Program
     private static async Task AddPackageByName(string name)
     {
         var pkg = (PackageFetcher.Instance.FetchPackagesAsync(name).Result).FirstOrDefault();
-        string snake = Naming.ToSnakeCase(pkg.Name);
+        //string snake = Naming.ToSnakeCase(pkg.Name);
         if (pkg == null)
         {
             Console.WriteLine("No packages found.");
@@ -145,7 +145,7 @@ internal class Program
         }
     }
 
-    private static async Task RunList(ListOptions opts)
+    private static void RunList(ListOptions opts)
     {
         if (PackagesFile.Packages.Count == 0)
         {
